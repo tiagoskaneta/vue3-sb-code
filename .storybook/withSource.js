@@ -58,36 +58,35 @@ export const withSource = makeDecorator({
           try {
             // get the story source from the depths of storybook
             const src = context.originalStoryFn.parameters.storySource.source;
-            // this extracts the template from the story source
-            const match = /\b(["']?)template\1:\s*(["'`])([^\1]+)\2/.exec(src);
-            if (match) {
-              // generate the source code based on the current args
-              const code = templateSourceCode(
-                match[3],
-                context.args,
-                context.argTypes
+            
+            // generate the source code based on the current args
+            const code = templateSourceCode(
+              src2,
+              context.args,
+              context.argTypes
+            );
+
+            const channel = addons.getChannel();
+
+            const emitFormattedTemplate = async () => {
+              const prettier = await import("prettier/standalone");
+              const prettierHtml = await import("prettier/parser-html");
+
+              // emits an event  when the transformation is completed
+              channel.emit(
+                SNIPPET_RENDERED,
+                (context || {}).id,
+                prettier.format(`<template>${code}</template>`, {
+                  parser: "vue",
+                  plugins: [prettierHtml],
+                  htmlWhitespaceSensitivity: "ignore",
+                })
               );
+            };
 
-              const channel = addons.getChannel();
-
-              const emitFormattedTemplate = async () => {
-                const prettier = await import("prettier/standalone");
-                const prettierHtml = await import("prettier/parser-html");
-
-                // emits an event  when the transformation is completed
-                channel.emit(
-                  SNIPPET_RENDERED,
-                  (context || {}).id,
-                  prettier.format(`<template>${code}</template>`, {
-                    parser: "vue",
-                    plugins: [prettierHtml],
-                    htmlWhitespaceSensitivity: "ignore",
-                  })
-                );
-              };
-
-              setTimeout(emitFormattedTemplate, 0);
-            }
+            // this avoids an issue with the addons-docs not picking
+            // up the event
+            setTimeout(emitFormattedTemplate, 0);
           } catch (e) {
             console.warn("Failed to render code", e);
           }

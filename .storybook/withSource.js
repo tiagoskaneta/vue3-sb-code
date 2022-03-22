@@ -56,12 +56,12 @@ export const withSource = makeDecorator({
       setup() {
         onMounted(() => {
           try {
-            // get the story source from the depths of storybook
-            const src = context.originalStoryFn.parameters.storySource.source;
+            // get the story source
+            const src = context.originalStoryFn().template;
             
             // generate the source code based on the current args
             const code = templateSourceCode(
-              src2,
+              src,
               context.args,
               context.argTypes
             );
@@ -84,8 +84,6 @@ export const withSource = makeDecorator({
               );
             };
 
-            // this avoids an issue with the addons-docs not picking
-            // up the event
             setTimeout(emitFormattedTemplate, 0);
           } catch (e) {
             console.warn("Failed to render code", e);
